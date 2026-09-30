@@ -55,19 +55,69 @@ CREATE TABLE IF NOT EXISTS t_adr_org_arch (
 
 CREATE TABLE IF NOT EXISTS t_adr_report_row (
   id bigint NOT NULL COMMENT '主键',
+  booklet_id bigint NOT NULL DEFAULT 0 COMMENT '所属下发册(=t_adr_check_booklet.id)',
   batch_no varchar(64) DEFAULT NULL COMMENT '上级中心下发册次号',
-  row_no int DEFAULT NULL COMMENT '原册行次',
-  item_code varchar(64) DEFAULT NULL COMMENT '被挑出的报告卡追溯码',
-  qty decimal(12,2) DEFAULT NULL COMMENT '本行待核关联份数',
+  period_no varchar(32) DEFAULT NULL COMMENT '进册核对期次号',
+  row_no int DEFAULT NULL COMMENT '原册行次(进册照先后排定,此后不可改)',
+  item_code varchar(64) DEFAULT NULL COMMENT '被挑出的报告卡追溯码(只认码,撞名不算)',
+  qty decimal(12,2) DEFAULT NULL COMMENT '册上本行申报份数',
+  posted_qty decimal(12,2) DEFAULT NULL COMMENT '实际落账份数(本期可核销以本期挂下数封顶,超出不记本行也不移抵他行)',
+  suspend_reason varchar(255) DEFAULT NULL COMMENT '挂起缘故(挂起必填,一句话)',
+  archive_phase int NOT NULL DEFAULT 0 COMMENT '归档档层 0现行 1往期(连跨两个核对期仍挂起则入往期,不再现身现行册面)',
+  cross_count int NOT NULL DEFAULT 0 COMMENT '已跨过的核对期界数(到2仍挂起则搬入往期层)',
+  archive_time datetime DEFAULT NULL COMMENT '归入往期时刻',
   status int DEFAULT NULL COMMENT '行落地情形 0待核 1已挂接 2挂起',
-  del_flag int DEFAULT '0' COMMENT '删除标记 0正常 1删除',
+  del_flag int NOT NULL DEFAULT 0 COMMENT '删除标记 0正常 1作废旧版(册作废重报时旧版置1)',
   create_by varchar(64) DEFAULT NULL COMMENT '创建者',
   create_time datetime DEFAULT NULL COMMENT '创建时间',
   update_by varchar(64) DEFAULT NULL COMMENT '更新者',
   update_time datetime DEFAULT NULL COMMENT '更新时间',
   remark varchar(500) DEFAULT NULL COMMENT '备注',
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_booklet_row (booklet_id, row_no),
+  KEY idx_booklet_status (booklet_id, status, del_flag, archive_phase),
+  KEY idx_code_phase (item_code, archive_phase, del_flag),
+  KEY idx_period (period_no, archive_phase, del_flag)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='上级下发关联册核对行';
+
+-- 下发册（一册一个下发册号，号进门即定死；二次进册只走比对一层，改动须走作废）
+CREATE TABLE IF NOT EXISTS t_adr_check_booklet (
+  id bigint NOT NULL COMMENT '主键',
+  batch_no varchar(64) NOT NULL COMMENT '下发册号(进门定死,册内各行不得混入他册)',
+  period_no varchar(32) DEFAULT NULL COMMENT '本册进册核对期次号',
+  row_cap int NOT NULL DEFAULT 500 COMMENT '中心定下的单册行数上限(进册按整册把关)',
+  total_rows int NOT NULL DEFAULT 0 COMMENT '本册行数(回执数①,逐行落库同源点算)',
+  linked_rows int NOT NULL DEFAULT 0 COMMENT '已挂接行数(回执数②)',
+  suspended_rows int NOT NULL DEFAULT 0 COMMENT '挂起行数(回执数③,②+③=①)',
+  void_flag int DEFAULT 0 COMMENT '作废标记 0在册 NULL已作废(作废置NULL:唯一索引只挡在册重号,不挡同册号多次作废重报)',
+  receipt_status int NOT NULL DEFAULT 0 COMMENT '回执情形 0未回执 1核讫 2空册(空册不许写核讫)',
+  del_flag int NOT NULL DEFAULT 0 COMMENT '删除标记 0正常 1删除',
+  create_by varchar(64) DEFAULT NULL COMMENT '创建者',
+  create_time datetime DEFAULT NULL COMMENT '创建时间',
+  update_by varchar(64) DEFAULT NULL COMMENT '更新者',
+  update_time datetime DEFAULT NULL COMMENT '更新时间',
+  remark varchar(500) DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_batch_live (batch_no, void_flag),
+  KEY idx_period (period_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='上级下发对照册';
+
+-- 核对期账（一期一条；本期能核销数以本期挂下数封顶）
+CREATE TABLE IF NOT EXISTS t_adr_check_period (
+  id bigint NOT NULL COMMENT '主键',
+  period_no varchar(32) NOT NULL COMMENT '核对期次号',
+  carry_in_qty decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '本期挂下可核销额度(由上期挂起份数结转)',
+  used_qty decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '本期已核销占用额度',
+  closed int NOT NULL DEFAULT 0 COMMENT '是否已封账 0开口 1已封(结转下期)',
+  del_flag int NOT NULL DEFAULT 0 COMMENT '删除标记 0正常 1删除',
+  create_by varchar(64) DEFAULT NULL COMMENT '创建者',
+  create_time datetime DEFAULT NULL COMMENT '创建时间',
+  update_by varchar(64) DEFAULT NULL COMMENT '更新者',
+  update_time datetime DEFAULT NULL COMMENT '更新时间',
+  remark varchar(500) DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_period (period_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='核对期额度账';
 
 CREATE TABLE IF NOT EXISTS t_adr_review_bill (
   id bigint NOT NULL COMMENT '主键',

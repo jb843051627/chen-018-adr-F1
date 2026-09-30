@@ -119,6 +119,13 @@
 			<artifactId>mysql-connector-java</artifactId>
 		</dependency>
 
+		<!-- H2 测试库（MODE=MySQL 跑 ADR 对照册领域服务集成测试） -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 		<!-- mysql驱动8.0
 		 <dependency>
 		 	<groupId>mysql</groupId>

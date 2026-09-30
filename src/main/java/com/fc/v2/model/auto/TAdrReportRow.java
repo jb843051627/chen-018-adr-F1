@@ -32,25 +32,61 @@ public class TAdrReportRow implements Serializable {
     @ApiModelProperty(value = "主键")
     private Long id;
 
+    /** 所属下发册(=t_adr_check_booklet.id) */
+    @TableField("booklet_id")
+    @ApiModelProperty(value = "所属下发册")
+    private Long bookletId;
+
     /** 上级中心下发册次号 */
     @TableField("batch_no")
     @ApiModelProperty(value = "上级中心下发册次号")
     private String batchNo;
 
-    /** 原册行次 */
+    /** 进册核对期次号 */
+    @TableField("period_no")
+    @ApiModelProperty(value = "进册核对期次号")
+    private String periodNo;
+
+    /** 原册行次(进册照先后排定,此后不可改) */
     @TableField("row_no")
     @ApiModelProperty(value = "原册行次")
     private Integer rowNo;
 
-    /** 被挑出的报告卡追溯码 */
+    /** 被挑出的报告卡追溯码(只认码,撞名不算) */
     @TableField("item_code")
     @ApiModelProperty(value = "被挑出的报告卡追溯码")
     private String itemCode;
 
-    /** 本行待核关联份数 */
+    /** 册上本行申报份数 */
     @TableField("qty")
-    @ApiModelProperty(value = "本行待核关联份数")
+    @ApiModelProperty(value = "册上本行申报份数")
     private BigDecimal qty;
+
+    /** 实际落账份数(以本期挂下额度封顶,超出不记本行也不移抵他行) */
+    @TableField("posted_qty")
+    @ApiModelProperty(value = "实际落账份数")
+    private BigDecimal postedQty;
+
+    /** 挂起缘故(挂起必填,一句话) */
+    @TableField("suspend_reason")
+    @ApiModelProperty(value = "挂起缘故")
+    private String suspendReason;
+
+    /** 归档档层 0现行 1往期(连跨两个核对期仍挂起则入往期) */
+    @TableField("archive_phase")
+    @ApiModelProperty(value = "归档档层 0现行 1往期")
+    private Integer archivePhase;
+
+    /** 已跨过的核对期界数(到2仍挂起则搬入往期层) */
+    @TableField("cross_count")
+    @ApiModelProperty(value = "已跨过的核对期界数")
+    private Integer crossCount;
+
+    /** 归入往期时刻 */
+    @TableField("archive_time")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @ApiModelProperty(value = "归入往期时刻")
+    private Date archiveTime;
 
     /** 行落地情形 0待核 1已挂接 2挂起 */
     @TableField("status")
@@ -95,6 +131,62 @@ public class TAdrReportRow implements Serializable {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getBookletId() {
+        return bookletId;
+    }
+
+    public void setBookletId(Long bookletId) {
+        this.bookletId = bookletId;
+    }
+
+    public String getPeriodNo() {
+        return periodNo;
+    }
+
+    public void setPeriodNo(String periodNo) {
+        this.periodNo = periodNo;
+    }
+
+    public BigDecimal getPostedQty() {
+        return postedQty;
+    }
+
+    public void setPostedQty(BigDecimal postedQty) {
+        this.postedQty = postedQty;
+    }
+
+    public String getSuspendReason() {
+        return suspendReason;
+    }
+
+    public void setSuspendReason(String suspendReason) {
+        this.suspendReason = suspendReason;
+    }
+
+    public Integer getArchivePhase() {
+        return archivePhase;
+    }
+
+    public void setArchivePhase(Integer archivePhase) {
+        this.archivePhase = archivePhase;
+    }
+
+    public Date getArchiveTime() {
+        return archiveTime;
+    }
+
+    public void setArchiveTime(Date archiveTime) {
+        this.archiveTime = archiveTime;
+    }
+
+    public Integer getCrossCount() {
+        return crossCount;
+    }
+
+    public void setCrossCount(Integer crossCount) {
+        this.crossCount = crossCount;
     }
 
     public String getBatchNo() {
