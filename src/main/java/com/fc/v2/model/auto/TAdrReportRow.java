@@ -32,30 +32,71 @@ public class TAdrReportRow implements Serializable {
     @ApiModelProperty(value = "主键")
     private Long id;
 
-    /** 上级中心下发册次号 */
+    /** 上级中心下发册次号（进门定死，行随册走） */
     @TableField("batch_no")
     @ApiModelProperty(value = "上级中心下发册次号")
     private String batchNo;
 
-    /** 原册行次 */
+    /** 进门核对期号（哪一期进门就记哪一期） */
+    @TableField("period_no")
+    @ApiModelProperty(value = "进门核对期号")
+    private String periodNo;
+
+    /** 本册内位次（进门按先后排定，此后走到哪一步都不改） */
     @TableField("row_no")
-    @ApiModelProperty(value = "原册行次")
+    @ApiModelProperty(value = "本册内位次")
     private Integer rowNo;
 
-    /** 被挑出的报告卡追溯码 */
+    /** 被挑出的报告卡追溯码（对卡只认此码，不认单位名号） */
     @TableField("item_code")
     @ApiModelProperty(value = "被挑出的报告卡追溯码")
     private String itemCode;
 
-    /** 本行待核关联份数 */
+    /** 上报份数（原册所填，原样留痕） */
     @TableField("qty")
-    @ApiModelProperty(value = "本行待核关联份数")
+    @ApiModelProperty(value = "上报份数")
     private BigDecimal qty;
+
+    /** 实际核销落账份数（受上期挂下封顶，双行只计一次） */
+    @TableField("link_qty")
+    @ApiModelProperty(value = "实际核销落账份数")
+    private BigDecimal linkQty;
 
     /** 行落地情形 0待核 1已挂接 2挂起 */
     @TableField("status")
     @ApiModelProperty(value = "行落地情形 0待核 1已挂接 2挂起")
     private Integer status;
+
+    /** 挂起缘故（四种不合之一，一句话） */
+    @TableField("hold_reason")
+    @ApiModelProperty(value = "挂起缘故")
+    private String holdReason;
+
+    /** 挂起已跨过的核对期数（连跨两期搬往期） */
+    @TableField("periods_held")
+    @ApiModelProperty(value = "挂起已跨过的核对期数")
+    private Integer periodsHeld;
+
+    /** 最近一次已拨入的新期号（防同一期重复拨动） */
+    @TableField("rolled_into")
+    @ApiModelProperty(value = "最近一次已拨入的新期号")
+    private String rolledInto;
+
+    /** 本册同码双行并账标记 0独立行 1靠前主行 2并入主行的从行 */
+    @TableField("merged")
+    @ApiModelProperty(value = "本册同码双行并账标记 0独立行 1靠前主行 2并入主行的从行")
+    private Integer merged;
+
+    /** 从行并入的主行id（merged=2 时落值，留痕可溯） */
+    @TableField("dup_of")
+    @JsonSerialize(using = ToStringSerializer.class)
+    @ApiModelProperty(value = "从行并入的主行id")
+    private Long dupOf;
+
+    /** 是否已搬往期 0现行册面 1往期（只供事后查账） */
+    @TableField("archived")
+    @ApiModelProperty(value = "是否已搬往期 0现行册面 1往期")
+    private Integer archived;
 
     /** 删除标记 0正常 1删除 */
     @TableField("del_flag")
@@ -135,6 +176,70 @@ public class TAdrReportRow implements Serializable {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public String getPeriodNo() {
+        return periodNo;
+    }
+
+    public void setPeriodNo(String periodNo) {
+        this.periodNo = periodNo;
+    }
+
+    public BigDecimal getLinkQty() {
+        return linkQty;
+    }
+
+    public void setLinkQty(BigDecimal linkQty) {
+        this.linkQty = linkQty;
+    }
+
+    public String getHoldReason() {
+        return holdReason;
+    }
+
+    public void setHoldReason(String holdReason) {
+        this.holdReason = holdReason;
+    }
+
+    public Integer getPeriodsHeld() {
+        return periodsHeld;
+    }
+
+    public void setPeriodsHeld(Integer periodsHeld) {
+        this.periodsHeld = periodsHeld;
+    }
+
+    public String getRolledInto() {
+        return rolledInto;
+    }
+
+    public void setRolledInto(String rolledInto) {
+        this.rolledInto = rolledInto;
+    }
+
+    public Integer getMerged() {
+        return merged;
+    }
+
+    public void setMerged(Integer merged) {
+        this.merged = merged;
+    }
+
+    public Long getDupOf() {
+        return dupOf;
+    }
+
+    public void setDupOf(Long dupOf) {
+        this.dupOf = dupOf;
+    }
+
+    public Integer getArchived() {
+        return archived;
+    }
+
+    public void setArchived(Integer archived) {
+        this.archived = archived;
     }
 
     public Integer getDelFlag() {

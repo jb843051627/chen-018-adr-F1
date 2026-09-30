@@ -55,19 +55,57 @@ CREATE TABLE IF NOT EXISTS t_adr_org_arch (
 
 CREATE TABLE IF NOT EXISTS t_adr_report_row (
   id bigint NOT NULL COMMENT '主键',
-  batch_no varchar(64) DEFAULT NULL COMMENT '上级中心下发册次号',
-  row_no int DEFAULT NULL COMMENT '原册行次',
-  item_code varchar(64) DEFAULT NULL COMMENT '被挑出的报告卡追溯码',
-  qty decimal(12,2) DEFAULT NULL COMMENT '本行待核关联份数',
+  batch_no varchar(64) DEFAULT NULL COMMENT '上级中心下发册次号（进门定死，行随册走）',
+  period_no varchar(16) DEFAULT NULL COMMENT '进门核对期号（哪一期进门就记哪一期）',
+  row_no int DEFAULT NULL COMMENT '本册内位次（进门按先后排定，此后走到哪一步都不改）',
+  item_code varchar(64) DEFAULT NULL COMMENT '被挑出的报告卡追溯码（对卡只认此码，不认单位名号）',
+  qty decimal(12,2) DEFAULT NULL COMMENT '上报份数（原册所填，原样留痕）',
+  link_qty decimal(12,2) DEFAULT NULL COMMENT '实际核销落账份数（受上期挂下封顶，双行只计一次）',
   status int DEFAULT NULL COMMENT '行落地情形 0待核 1已挂接 2挂起',
+  hold_reason varchar(255) DEFAULT NULL COMMENT '挂起缘故（四种不合之一，一句话）',
+  periods_held int DEFAULT '0' COMMENT '挂起已跨过的核对期数（连跨两期搬往期）',
+  rolled_into varchar(16) DEFAULT NULL COMMENT '最近一次已拨入的新期号（防同一期重复拨动）',
+  merged int DEFAULT '0' COMMENT '本册同码双行并账标记 0独立行 1靠前主行 2并入主行的从行',
+  dup_of bigint DEFAULT NULL COMMENT '从行并入的主行id（merged=2 时落值，留痕可溯）',
+  archived int DEFAULT '0' COMMENT '是否已搬往期 0现行册面 1往期（只供事后查账）',
   del_flag int DEFAULT '0' COMMENT '删除标记 0正常 1删除',
   create_by varchar(64) DEFAULT NULL COMMENT '创建者',
   create_time datetime DEFAULT NULL COMMENT '创建时间',
   update_by varchar(64) DEFAULT NULL COMMENT '更新者',
   update_time datetime DEFAULT NULL COMMENT '更新时间',
   remark varchar(500) DEFAULT NULL COMMENT '备注',
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  KEY idx_batch_row (batch_no, row_no),
+  KEY idx_batch_code (batch_no, item_code),
+  KEY idx_period_status (period_no, archived, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='上级下发关联册核对行';
+
+-- 册级账本：一册一号，进门定死；二次进门只比对不覆写；改口走作废。
+CREATE TABLE IF NOT EXISTS t_adr_recon_bill (
+  id bigint NOT NULL COMMENT '主键',
+  batch_no varchar(64) NOT NULL COMMENT '下发册次号（一册一个，进门定死）',
+  period_no varchar(16) DEFAULT NULL COMMENT '进门核对期号',
+  row_limit int DEFAULT NULL COMMENT '进门时中心所定单册行数上限（快照）',
+  total_rows int DEFAULT '0' COMMENT '本册落账行数（回执口径：挂接+挂起=本册行数）',
+  linked_rows int DEFAULT '0' COMMENT '已挂接行数（逐行落库后同源点算）',
+  held_rows int DEFAULT '0' COMMENT '挂起行数（逐行落库后同源点算）',
+  voided int DEFAULT '0' COMMENT '是否已作废 0在册 1已作废（作废后允许同号重新进门）',
+  receipt_status int DEFAULT NULL COMMENT '回执情形 0空册 1核讫（空册不得记核讫）',
+  compared int DEFAULT '0' COMMENT '二次进门只比对标记 0首进落账 1二次仅比对',
+  compared_at datetime DEFAULT NULL COMMENT '最近一次比对时刻',
+  active_batch_no varchar(64) GENERATED ALWAYS AS
+      (CASE WHEN voided = 0 AND del_flag = 0 THEN batch_no ELSE NULL END) STORED
+      COMMENT '在册册号（作废/删除置空；唯一索引允许多条 NULL）',
+  del_flag int DEFAULT '0' COMMENT '删除标记 0正常 1删除',
+  create_by varchar(64) DEFAULT NULL COMMENT '创建者',
+  create_time datetime DEFAULT NULL COMMENT '创建时间',
+  update_by varchar(64) DEFAULT NULL COMMENT '更新者',
+  update_time datetime DEFAULT NULL COMMENT '更新时间',
+  remark varchar(500) DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_active_batch (active_batch_no),
+  KEY idx_batch_no (batch_no, voided)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='上级下发对照册册级账';
 
 CREATE TABLE IF NOT EXISTS t_adr_review_bill (
   id bigint NOT NULL COMMENT '主键',
